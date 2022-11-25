@@ -18,13 +18,13 @@ import lib.datasets.kitti.kitti_eval_python.kitti_common as kitti
 class KITTI_Dataset(data.Dataset):
     def __init__(self, split, cfg):
         # basic configuration
-        self.root_dir = cfg.get('root_dir', '../../data/KITTI')
+        self.root_dir = cfg.get('root_dir', '../../data/20221121_centernet_rxry_full_3')
         self.split = split
         self.num_classes = 3
         self.max_objs = 50
         self.class_name = ['Pedestrian', 'Car', 'Cyclist']
         self.cls2id = {'Pedestrian': 0, 'Car': 1, 'Cyclist': 2}
-        self.resolution = np.array([1280, 384])  # W * H
+        self.resolution = np.array([384, 384])  # W * H 1280, 384
         self.use_3d_center = cfg.get('use_3d_center', True)
         self.writelist = cfg.get('writelist', ['Car'])
         # anno: use src annotations as GT, proj: use projected 2d bboxes as GT
@@ -74,10 +74,9 @@ class KITTI_Dataset(data.Dataset):
 
 
     def get_image(self, idx):
-        img_file = os.path.join(self.image_dir, '%06d.png' % idx)
+        img_file = os.path.join(self.image_dir, '%06d.jpg' % idx)
         assert os.path.exists(img_file)
         return Image.open(img_file)
-
 
     def get_label(self, idx):
         label_file = os.path.join(self.label_dir, '%06d.txt' % idx)
@@ -254,8 +253,9 @@ class KITTI_Dataset(data.Dataset):
             # encoding 3d offset & size_3d
             offset_3d[i] = center_3d - center_heatmap
             src_size_3d[i] = np.array([objects[i].h, objects[i].w, objects[i].l], dtype=np.float32)
+
             mean_size = self.cls_mean_size[self.cls2id[objects[i].cls_type]]
-            size_3d[i] = src_size_3d[i] - mean_size
+            size_3d[i] = src_size_3d[i] - mean_size*0 # not using class mean
 
             mask_2d[i] = 1
             mask_3d[i] = 0 if random_crop_flag else 1

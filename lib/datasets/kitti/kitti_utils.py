@@ -1,32 +1,34 @@
 ''' some auxiliary functions for KITTI dataset '''
 import numpy as np
+import pandas as pd
 import cv2
 
 ################  Object3D  ##################
 
 def get_objects_from_label(label_file):
-    with open(label_file, 'r') as f:
-        lines = f.readlines()
-    objects = [Object3d(line) for line in lines]
+    header = ['class','trunc','occlusion','alphax','xmin','ymin','xmax','ymax','h','w','l','x','y','z','rx','ry','rz','alphay']
+    ann = pd.read_csv(label_file,sep = ' ',names=header)
+
+    objects = [Object3d(ann.iloc[i]) for i in range(len(ann))]
     return objects
 
 
 class Object3d(object):
     def __init__(self, line):
-        label = line.strip().split(' ')
+        label = line
         self.src = line
-        self.cls_type = label[0]
-        self.trucation = float(label[1])
-        self.occlusion = float(label[2])  # 0:fully visible 1:partly occluded 2:largely occluded 3:unknown
-        self.alpha = float(label[3])
-        self.box2d = np.array((float(label[4]), float(label[5]), float(label[6]), float(label[7])), dtype=np.float32)
-        self.h = float(label[8])
-        self.w = float(label[9])
-        self.l = float(label[10])
-        self.pos = np.array((float(label[11]), float(label[12]), float(label[13])), dtype=np.float32)
+        self.cls_type = label['class']
+        self.trucation = float(label['trunc'])
+        self.occlusion = float(label['occlusion'])  # 0:fully visible 1:partly occluded 2:largely occluded 3:unknown
+        self.alpha = float(label['alphax']) % (np.pi*2)
+        self.box2d = np.array((float(label['xmin']), float(label['ymin']), float(label['xmax']), float(label['ymax'])), dtype=np.float32)
+        self.h = float(label['h'])
+        self.w = float(label['w'])
+        self.l = float(label['l'])
+        self.pos = np.array((float(label['x']), float(label['y']), float(label['z'])), dtype=np.float32)
         self.dis_to_cam = np.linalg.norm(self.pos)
-        self.ry = float(label[14])
-        self.score = float(label[15]) if label.__len__() == 16 else -1.0
+        self.ry = float(label['ry']) % (np.pi*2)
+        self.score = -1.0
         self.level_str = None
         self.level = self.get_obj_level()
 
