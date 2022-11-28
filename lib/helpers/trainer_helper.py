@@ -10,6 +10,7 @@ from lib.helpers.save_helper import load_checkpoint
 from lib.helpers.save_helper import save_checkpoint
 from lib.losses.centernet_loss import compute_centernet3d_loss
 
+import wandb
 
 class Trainer(object):
     def __init__(self,
@@ -53,6 +54,7 @@ class Trainer(object):
         self.gpu_ids = [0] #list(map(int, cfg['gpu_ids'].split(',')))
         self.model = torch.nn.DataParallel(model, device_ids=self.gpu_ids).to(self.device)
 
+        wandb.init(project="Monodle_fish",entity='alfin-nurhalim')
 
 
     def train(self):
@@ -84,10 +86,17 @@ class Trainer(object):
 
         return None
 
-
     def train_one_epoch(self):
         self.model.train()
         progress_bar = tqdm.tqdm(total=len(self.train_loader), leave=(self.epoch+1 == self.cfg['max_epoch']), desc='iters')
+
+        logger = dict()
+        logger['center'] = list()
+        logger['hm'] = list()
+        logger['depth'] = list()
+        logger['size3d'] = list()
+        logger['rotation'] = list()
+
         for batch_idx, (inputs, targets, _) in enumerate(self.train_loader):
             inputs = inputs.to(self.device)
             for key in targets.keys():
@@ -101,6 +110,20 @@ class Trainer(object):
             self.optimizer.step()
 
             progress_bar.update()
+
+            logger['center'].append(stats_batch['seg'])
+            logger['hm'].append(stats_batch['size2d'])
+            logger['depth'].append(stats_batch['depth'])
+            logger['size3d'].append(stats_batch['size3d'])
+            logger['rotation'].append(stats_batch['heading'])
+
+        logger['center'] = sum(logger['center'])/len(logger['center'])
+        logger['hm'] = sum(logger['hm'])/len(logger['hm'])
+        logger['depth'] = sum(logger['depth'])/len(logger['depth'])
+        logger['size3d'] = sum(logger['size3d'])/len(logger['size3d'])
+        logger['rotation'] = sum(logger['rotation'])/len(logger['rotation'])
+        
+        wandb.log(logger)
         progress_bar.close()
 
 

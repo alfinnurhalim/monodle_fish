@@ -30,6 +30,8 @@ def compute_centernet3d_loss(input, target):
 
     total_loss = seg_loss + offset2d_loss + size2d_loss + offset3d_loss + \
                  depth_loss + size3d_loss + heading_loss
+
+    stats_dict['total_loss'] = total_loss
     return total_loss, stats_dict
 
 
